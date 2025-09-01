@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { FaArchive, FaTrash } from 'react-icons/fa';
-
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+import { supabase } from "../components/supabaseClient";
 
 const Home = () => {
     const [goals, setGoals] = useState([]);
@@ -11,79 +9,79 @@ const Home = () => {
     const [archiveGoals, setArchiveGoals] = useState([]);
 
     useEffect(() => {
-    getGoals();
+        getGoals();
     }, []);
 
-
     async function getGoals() {
-    const { data } = await supabase.from("goals").select();
-    setGoals(data);
+        const { data } = await supabase.from("goals").select();
+        console.log(data);
+        setGoals(data);
     }
 
-    async function getGoal(id){
-    const { data } = await supabase.from("goals").select().eq('id', id);
-    return data;
+    async function getGoal(id) {
+        const { data } = await supabase.from("goals").select().eq('id', id);
+        return data;
     }
 
-    async function getArchiveGoals(){
-    const { data } = await supabase.from("goal_archive").select();
-    setArchiveGoals(data);
-    return data;
+    async function getArchiveGoals() {
+        const { data } = await supabase.from("goal_archive").select();
+        setArchiveGoals(data);
+        return data;
     }
 
     async function addGoal() {
-    if(!tempGoal) return;
-    const newEntry = {user_id: null, text: tempGoal}
-    const { data, error } = await supabase.from("goals").insert([newEntry]).select();
+        if (!tempGoal) return;
+        const newEntry = { user_id: null, text: tempGoal };
+        const { data, error } = await supabase.from("goals").insert([newEntry]).select();
 
-    if (error) {
-        console.error(error);
-        return;
-    }
+        if (error) {
+            console.error(error);
+            return;
+        }
 
-    setGoals(prevGoals => [...prevGoals, ...data]);
-    setTempGoal("");
-    setCreatingGoal(false);
+        setGoals(prevGoals => [...prevGoals, ...data]);
+        setTempGoal("");
+        setCreatingGoal(false);
     }
 
     async function deleteGoal(id) {
-    const { data , error} = await supabase.from("goals").delete().eq('id', id).select();
+        const { data, error } = await supabase.from("goals").delete().eq('id', id).select();
 
-    if (error){
-        console.error(error);
-        return;
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
     }
 
-    setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
-    }
+    async function archiveGoal(id) {
+        const goal = await getGoal(id);
+        const row = goal[0];
 
-    async function archiveGoal(id){
-    const goal = getGoal(id);
-    console.log(goal);
+        // Insert the goal into the archive table
+        const { data, error } = await supabase.from("goal_archive").insert([row]).select();
 
-    // Insert the goal into the archive table
-    const { data, error } = await supabase.from("goal_archive").insert([goal]).select();
+        if (error) {
+            console.error(error);
+            return;
+        }
+        setArchiveGoals(prevArchiveGoals => [...prevArchiveGoals, ...data]);
 
-    if (error){
-        console.error(error);
-        return;
-    }
-    setArchiveGoals(prevArchiveGoals => [...prevArchiveGoals, ...data]);
-
-    // remove from the current table
-    deleteGoal(id);
+        // remove from the current table
+        await deleteGoal(id);
     }
 
     const change = event => {
-    setTempGoal(event.target.value);
+        setTempGoal(event.target.value);
     }
 
     const buttonChange = event => {
-    if(creatingGoal){
-        setCreatingGoal(false);
-    }else{
-        setCreatingGoal(true);
-    }
+        if (creatingGoal) {
+            setCreatingGoal(false);
+        } else {
+            setCreatingGoal(true);
+        }
     }
 
     return (
