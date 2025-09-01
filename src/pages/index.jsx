@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { FaArchive, FaTrash } from 'react-icons/fa';
 import { supabase } from "../components/supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
     const [goals, setGoals] = useState([]);
     const [tempGoal, setTempGoal] = useState("");
     const [creatingGoal, setCreatingGoal] = useState(false);
     const [archiveGoals, setArchiveGoals] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         getGoals();
@@ -89,23 +91,32 @@ const Home = () => {
         <h1 className="text-4xl font-bold text-blue-700 mb-6 drop-shadow-lg">Goals</h1>
     <ul className="w-full max-w-2xl space-y-3 mb-6 px-2">
             {goals.map((goal) => (
-            <li key={goal.id} className="flex items-center justify-between bg-white rounded-lg shadow p-4 hover:bg-blue-50 transition">
-                <span className="text-lg text-gray-800">{goal.text}</span>
-                <button
-                onClick={() => deleteGoal(goal.id)}
-                className="ml-4 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition"
-                aria-label="Delete goal"
-                >
-                <FaTrash />
-                </button>
-                <button
-                onClick={() => archiveGoal(goal.id)}
-                className="ml-4 bg-green-500 hover:text-green-700 p-2 rounded-full hover:bg-green-100 transition"
-                aria-label="Archive goal"
-                >
-                <FaArchive />
-                </button>
-            </li>
+                <li key={goal.id}>
+                    <div
+                        className="w-full flex items-center justify-between bg-white rounded-lg shadow p-4 hover:bg-blue-50 transition text-left cursor-pointer"
+                        onClick={() => navigate(`/goal/${goal.id}`)} // Add a card click handler if needed
+                    >
+                        <span className="text-lg text-gray-800">{goal.text}</span>
+                        <span className="flex gap-2">
+                            <button
+                                onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
+                                className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition"
+                                aria-label="Delete goal"
+                                type="button"
+                            >
+                                <FaTrash />
+                            </button>
+                            <button
+                                onClick={e => { e.stopPropagation(); archiveGoal(goal.id); }}
+                                className="bg-green-500 hover:text-green-700 p-2 rounded-full hover:bg-green-100 transition"
+                                aria-label="Archive goal"
+                                type="button"
+                            >
+                                <FaArchive />
+                            </button>
+                        </span>
+                    </div>
+                </li>
             ))}
         </ul>
         <button
