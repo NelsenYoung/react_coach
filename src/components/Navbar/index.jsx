@@ -18,6 +18,12 @@ const Navbar = () => {
                     >
                         Archive
                     </NavLink>
+                    <NavLink
+                        to="/HabitTrackerPage"
+                        className={({ isActive }) => isActive ? "active" : undefined}
+                    >
+                        Habits
+                    </NavLink>
                 </NavMenu>
             </Nav>
         </>
