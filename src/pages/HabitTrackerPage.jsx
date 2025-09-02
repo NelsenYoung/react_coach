@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../components/supabaseClient";
-
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import TimePicker  from "../components/TimePicker";
+import { FaChevronLeft, FaChevronRight, FaTrash } from 'react-icons/fa';
 
 const TABS = ["Morning", "Day", "Evening"];
 
@@ -9,9 +9,11 @@ export default function HabitTrackerPage() {
     const [currentTab, setCurrentTab] = useState(0);
     const [habits, setHabits] = useState([]);
     const [selectedHabit, setSelectedHabit] = useState(null);
+    const [tempHabit, setTempHabit] = useState("");
+    const [creatingHabit, setCreatingHabit] = useState(false);
+    const [habitTime, setHabitTime] = useState("");
 
     useEffect(() => {
-        // Fetch habits for the current tab from supabase
         async function fetchHabits() {
             const { data, error } = await supabase
                 .from("habits")
@@ -28,7 +30,50 @@ export default function HabitTrackerPage() {
         setSelectedHabit(null);
     }, [currentTab]);
 
+    async function addHabit() {
+        if (!tempHabit) return;
+        const newEntry = { text: tempHabit, time_of_day: TABS[currentTab], time: habitTime };
+        const { data, error } = await supabase.from("habits").insert([newEntry]).select();
+        if (error) {
+            console.error(error);
+            return;
+        }
+        setHabits(prevHabits => [...prevHabits, ...data]);
+        setTempHabit("");
+        setHabitTime("");
+        setCreatingHabit(false);
+    }
 
+    async function deleteHabit(id) {
+        const { error } = await supabase.from("habits").delete().eq('id', id);
+        if (error) {
+            console.error(error);
+            return;
+        }
+        setHabits(prevHabits => prevHabits.filter(habit => habit.id !== id));
+    }
+
+    async function updateHabitTime(id, newTime) {
+        console.log(newTime);
+        const { error } = await supabase.from("habits").update({ time: newTime }).eq('id', id);
+        if (error) {
+            console.error(error);
+            return;
+        }
+        setHabits(prevHabits => prevHabits.map(h => h.id === id ? { ...h, time: newTime } : h));
+    }
+
+    const change = event => {
+        setTempHabit(event.target.value);
+    }
+
+    const buttonChange = event => {
+        if (creatingHabit) {
+            setCreatingHabit(false);
+        } else {
+            setCreatingHabit(true);
+        }
+    }
 
     // Helper to get tab index with wrap-around
     const getTabIdx = (offset) => (currentTab + offset + TABS.length) % TABS.length;
@@ -80,13 +125,36 @@ export default function HabitTrackerPage() {
                 <ul className="space-y-3">
                     {habits.map((habit) => (
                         <li key={habit.id}>
-                            <button
-                                className="w-full flex items-center justify-between bg-white rounded-lg shadow p-4 hover:bg-blue-50 transition text-left cursor-pointer"
-                                onClick={() => setSelectedHabit(habit.id === selectedHabit ? null : habit.id)}
-                                type="button"
-                            >
-                                <span className="text-lg text-gray-800">{habit.name}</span>
-                            </button>
+                            <div className="w-full flex items-center justify-between bg-white rounded-lg shadow p-4 hover:bg-blue-50 transition">
+                                <span
+                                    className="flex-1 text-lg text-gray-800 cursor-pointer text-left"
+                                    onClick={() => setSelectedHabit(habit.id === selectedHabit ? null : habit.id)}
+                                >
+                                    {habit.text}
+                                    {habit.time ? (
+                                        <span className="ml-2 px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded">{habit.time}</span>
+                                    ) : (
+                                        <button
+                                            className="ml-2 px-2 py-1 text-xs text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                <TimePicker value={habitTime} onChange={updateHabitTime}/>
+                                            }}
+                                            type="button"
+                                        >
+                                            Add Time
+                                        </button>
+                                    )}
+                                </span>
+                                <button
+                                    onClick={e => { e.stopPropagation(); deleteHabit(habit.id); }}
+                                    className="ml-4 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 transition"
+                                    aria-label="Delete habit"
+                                    type="button"
+                                >
+                                    <FaTrash />
+                                </button>
+                            </div>
                             {selectedHabit === habit.id && (
                                 <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-2 rounded">
                                     <p className="text-gray-700">{habit.description || "No description provided."}</p>
@@ -100,6 +168,40 @@ export default function HabitTrackerPage() {
                         </li>
                     )}
                 </ul>
+                <button
+                    onClick={buttonChange}
+                    className="my-6 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition"
+                >
+                    {creatingHabit ? "Cancel" : "Add Habit"}
+                </button>
+
+                {creatingHabit && (
+                    <form
+                        className="w-full flex gap-2 px-2"
+                        onSubmit={e => {
+                            e.preventDefault();
+                            addHabit();
+                        }}
+                    >
+                        <input
+                            type="text"
+                            value={tempHabit}
+                            onChange={change}
+                            placeholder="Enter a Habit"
+                            autoFocus
+                            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow"
+                        />
+                        <div className="flex flex-col justify-center items-center px-2">
+                            <TimePicker value={habitTime} onChange={setHabitTime} />
+                        </div>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition"
+                        >
+                            Add
+                        </button>
+                    </form>
+                )}
             </div>
         </div>
     );
