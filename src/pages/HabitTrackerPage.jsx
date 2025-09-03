@@ -32,6 +32,10 @@ export default function HabitTrackerPage() {
         setSelectedHabit(null);
     }, [currentTab]);
 
+    function sortHabitsByTime(habits) {
+        return [...habits].sort((a, b) => a.time.localeCompare(b.time));
+    }
+
     async function addHabit() {
         if (!tempHabit) return;
         const newEntry = { text: tempHabit, time_of_day: TABS[currentTab], time: habitTime };
@@ -44,6 +48,11 @@ export default function HabitTrackerPage() {
         setTempHabit("");
         setHabitTime("");
         setCreatingHabit(false);
+        setHabits(prev =>
+            sortHabitsByTime(
+                prev.map(h => (h.id === data.id ? data : h))
+            )
+        );
     }
 
     async function deleteHabit(id) {
@@ -70,6 +79,11 @@ export default function HabitTrackerPage() {
             }
         }));
         setUpdatingHabit(false);
+        setHabits(prev =>
+            sortHabitsByTime(
+                prev.map(h => (h.id === updatingId ? data[0] : h))
+            )
+        );
     }
 
     const change = event => {
@@ -141,6 +155,11 @@ export default function HabitTrackerPage() {
                                     onClick={() => setSelectedHabit(habit.id === selectedHabit ? null : habit.id)}
                                 >
                                     {habit.text}
+                                    {habit.time && (
+                                        <span className="ml-2 px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded">
+                                            {habit.time}
+                                        </span>
+                                    )}
                                 </span>
                                 <button
                                     onClick={e => {
@@ -149,7 +168,6 @@ export default function HabitTrackerPage() {
                                         setUpdatingHabit(true);
                                         setTempHabit(habit.text);
                                         setHabitTime(habit.time);
-                                        console.log(habits);
                                     }}
                                 >
                                     <FaEdit />
@@ -169,6 +187,7 @@ export default function HabitTrackerPage() {
                                     <p className="text-gray-700">{habit.description || "No description provided."}</p>
                                 </div>
                             )}
+                            {/* Edit Habit Tab */}
                             {updatingId == habit.id && updatingHabit && (
                                 <form
                                     onSubmit={e => {
