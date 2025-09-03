@@ -134,35 +134,6 @@ export default function HabitTrackerPage() {
                                     onClick={() => setSelectedHabit(habit.id === selectedHabit ? null : habit.id)}
                                 >
                                     {habit.text}
-                                    {habit.time ? (
-                                        <span className="ml-2 px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded">{habit.time}</span>
-                                    ) : (
-                                        <div className="flex items-center gap-2 ml-2">
-                                            <button
-                                                className="px-2 py-1 text-xs text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition"
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    setUpdatingHabit(true);
-                                                    setUpdatingId(habit.id);
-                                                }}
-                                                type="button"
-                                            >
-                                                Add Time
-                                            </button>
-                                            {updatingHabit && updatingId === habit.id && (
-                                                <form
-                                                    className="flex items-center gap-2"
-                                                    onSubmit={e => {
-                                                        e.preventDefault();
-                                                        updateHabitTime(habit.id, habitTime);
-                                                    }}
-                                                >
-                                                    <TimePicker value={habitTime} onChange={setHabitTime} />
-                                                    <button type="submit" className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition">Save</button>
-                                                </form>
-                                            )}
-                                        </div>
-                                    )}
                                 </span>
                                 <button
                                     onClick={e => { e.stopPropagation(); deleteHabit(habit.id); }}
