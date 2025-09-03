@@ -12,6 +12,8 @@ export default function HabitTrackerPage() {
     const [tempHabit, setTempHabit] = useState("");
     const [creatingHabit, setCreatingHabit] = useState(false);
     const [habitTime, setHabitTime] = useState("");
+    const [updatingId, setUpdatingId] = useState(null);
+    const [updatingHabit, setUpdatingHabit] = useState(false);
 
     useEffect(() => {
         async function fetchHabits() {
@@ -61,6 +63,7 @@ export default function HabitTrackerPage() {
             return;
         }
         setHabits(prevHabits => prevHabits.map(h => h.id === id ? { ...h, time: newTime } : h));
+        console.log(habits);
     }
 
     const change = event => {
@@ -134,16 +137,31 @@ export default function HabitTrackerPage() {
                                     {habit.time ? (
                                         <span className="ml-2 px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded">{habit.time}</span>
                                     ) : (
-                                        <button
-                                            className="ml-2 px-2 py-1 text-xs text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition"
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                <TimePicker value={habitTime} onChange={updateHabitTime}/>
-                                            }}
-                                            type="button"
-                                        >
-                                            Add Time
-                                        </button>
+                                        <div className="flex items-center gap-2 ml-2">
+                                            <button
+                                                className="px-2 py-1 text-xs text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition"
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    setUpdatingHabit(true);
+                                                    setUpdatingId(habit.id);
+                                                }}
+                                                type="button"
+                                            >
+                                                Add Time
+                                            </button>
+                                            {updatingHabit && updatingId === habit.id && (
+                                                <form
+                                                    className="flex items-center gap-2"
+                                                    onSubmit={e => {
+                                                        e.preventDefault();
+                                                        updateHabitTime(habit.id, habitTime);
+                                                    }}
+                                                >
+                                                    <TimePicker value={habitTime} onChange={setHabitTime} />
+                                                    <button type="submit" className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition">Save</button>
+                                                </form>
+                                            )}
+                                        </div>
                                     )}
                                 </span>
                                 <button
