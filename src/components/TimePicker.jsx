@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 function TimePicker({ value, onChange }) {
   return (
     <div className="flex flex-col items-start">
-      <label htmlFor="time-input" className="mb-1 text-sm text-gray-600">Select Time:</label>
+      <label htmlFor="time-input" className="mb-1 text-sm text-gray-600"></label>
       <input
         type="time"
         id="time-input"

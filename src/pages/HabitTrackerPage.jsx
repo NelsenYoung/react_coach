@@ -194,23 +194,30 @@ export default function HabitTrackerPage() {
                                         e.preventDefault();
                                         editHabit();
                                     }}
+                                    className="flex items-center gap-2 bg-white rounded shadow border border-blue-200 px-2 py-1 w-full"
+                                    style={{ display: 'inline-flex' }}
                                 >
-                                    Habit: <input 
-                                                name="myInput" 
-                                                type="text"
-                                                value={tempHabit}
-                                                onChange={change}
-                                            />
+                                    <input 
+                                        name="myInput" 
+                                        type="text"
+                                        value={tempHabit}
+                                        onChange={change}
+                                        className="flex-1 text-lg px-2 py-1 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow"
+                                        placeholder="Edit habit text..."
+                                    />
                                     <TimePicker value={habitTime} onChange={setHabitTime} />
                                     <button
                                         onClick={() => setUpdatingHabit(false)}
+                                        type="button"
+                                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
+                                        className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition"
                                     >
-                                        Submit
+                                        Save
                                     </button>
                                 </form>
                             )}
