@@ -7,10 +7,10 @@ const Navbar = () => {
             <Nav>
                 <NavMenu>
                     <NavLink
-                        to="/"
+                        to="/GoalsPage"
                         className={({ isActive }) => isActive ? "active" : undefined}
                     >
-                        Home
+                        Goals
                     </NavLink>
                     <NavLink
                         to="/ArchivePage"
