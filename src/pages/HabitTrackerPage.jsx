@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../components/supabaseClient";
 import TimePicker  from "../components/TimePicker";
 import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash } from 'react-icons/fa';
+import axios from 'axios';
 
 const TABS = ["Morning", "Day", "Evening"];
 
 export default function HabitTrackerPage() {
+    const [goals, setGoals] = useState([]);
     const [currentTab, setCurrentTab] = useState(0);
     const [habits, setHabits] = useState([]);
     const [selectedHabit, setSelectedHabit] = useState(null);
@@ -16,24 +18,75 @@ export default function HabitTrackerPage() {
     const [updatingHabit, setUpdatingHabit] = useState(false);
 
     useEffect(() => {
-        async function fetchHabits() {
-            const { data, error } = await supabase
-                .from("habits")
-                .select()
-                .eq("time_of_day", TABS[currentTab]);
-            if (error) {
-                console.error(error);
-                setHabits([]);
-                return;
-            }
-            setHabits(data);
-        }
         fetchHabits();
+        fetchGoals();
         setSelectedHabit(null);
+        //callOllama();
     }, [currentTab]);
 
     function sortHabitsByTime(habits) {
         return [...habits].sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    async function callOllama(){
+        try{
+            for(let i = 0; i < habits.length; i++){
+                let habit = habits[i];
+                if(goals.length == 0){
+                    break;
+                }
+                // THIS IS TEMPORARY AND MUST BE CHANGED IN THE FUTURE
+                let goal = goals[0];
+                const response = await axios.post("http://localhost:11434/api/generate", {
+                    model: "llama3.2",
+                    prompt: `Give me a grade (+/=/-) and a brief explanation for this question: Does this habit: ${habit.text} contribute to my goal of: ${goal.text}? The grade should be the first char in the response.`,
+                    stream: false
+                });
+                console.log(response.data.response);
+                addHabitGrade(response.data.response, habit.id);
+            }
+        }catch(error){
+            console.log(error);
+        }
+    }
+
+    async function addHabitGrade(explanation, id){
+        const {data, error } = await supabase.from("habits").update({grade: explanation[0], grade_explanation: explanation}).select().eq("id", id);
+        if(error){
+            console.error(error);
+            return
+        }
+        setHabits(habits.map(h => {
+            if(h.id === id){
+                return data[0];
+            }else{
+                return h;
+            }
+        }));
+    }
+
+    async function fetchHabits() {
+        const { data, error } = await supabase
+            .from("habits")
+            .select()
+            .eq("time_of_day", TABS[currentTab]);
+        if (error) {
+            console.error(error);
+            setHabits([]);
+            return;
+        }
+        setHabits(sortHabitsByTime(data));
+    }
+
+    async function fetchGoals() {
+        const { data, error } = await supabase.from("goals").select();
+        if(error){
+            console.error(error);
+            setGoals([]);
+            return;
+        }
+        setGoals(data);
+        console.log(data);
     }
 
     async function addHabit() {
@@ -143,6 +196,13 @@ export default function HabitTrackerPage() {
                 </button>
             </div>
 
+            <button
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
+                onClick={() => callOllama()}
+            >
+                Grade Habits
+            </button>     
+
             {/* Habits List */}
             <div className="w-full max-w-2xl">
                 <ul className="space-y-3">
@@ -184,7 +244,7 @@ export default function HabitTrackerPage() {
                             {/* Extra Information about habit tab, activated when user clicks on habit card */}
                             {selectedHabit === habit.id && (
                                 <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-2 rounded">
-                                    <p className="text-gray-700">{habit.description || "No description provided."}</p>
+                                    <p className="text-gray-700">{habit.grade_explanation || "No description provided."}</p>
                                 </div>
                             )}
                             {/* Edit Habit Tab */}
@@ -260,7 +320,7 @@ export default function HabitTrackerPage() {
                             className="px-4 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition"
                         >
                             Add
-                        </button>
+                        </button>         
                     </form>
                 )}
             </div>
