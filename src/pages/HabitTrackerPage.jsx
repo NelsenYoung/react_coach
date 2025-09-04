@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../components/supabaseClient";
 import TimePicker  from "../components/TimePicker";
 import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash } from 'react-icons/fa';
-import axios from 'axios';
 
 const TABS = ["Morning", "Day", "Evening"];
 
@@ -21,7 +20,6 @@ export default function HabitTrackerPage() {
         fetchHabits();
         fetchGoals();
         setSelectedHabit(null);
-        //callOllama();
     }, [currentTab]);
 
     function sortHabitsByTime(habits) {
@@ -37,13 +35,58 @@ export default function HabitTrackerPage() {
                 }
                 // THIS IS TEMPORARY AND MUST BE CHANGED IN THE FUTURE
                 let goal = goals[0];
-                const response = await axios.post("http://localhost:11434/api/generate", {
-                    model: "llama3.2",
-                    prompt: `Give me a grade (+/=/-) and a brief explanation for this question: Does this habit: ${habit.text} contribute to my goal of: ${goal.text}? The grade should be the first char in the response.`,
-                    stream: false
+                // Using fetch to get the LLM response
+                const response = await fetch("http://localhost:11434/api/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "llama3.2",
+                        prompt: `Give me a grade (either a +, an = for neutral, or a -) and a brief explanation for this question: Does this habit: ${habit.text} contribute to my goal of: ${goal.text}? The grade should be the first char in the response. 
+                                Remember, the starting character must be a +, =, or -. If the habit aligns with goal give it a +, if it has not impact or is not directly related, give it a =, if it directly goes agaisnt the goal give it a -`,
+                        stream: true,
+                    }),
                 });
-                console.log(response.data.response);
-                addHabitGrade(response.data.response, habit.id);
+
+                setSelectedHabit(habit.id);
+                console.log("Did it get here");
+
+                // Read the response from the LLM (This is needed for streaming the response)
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let done = false;
+                let messageContent = "";
+                while (!done) {
+                    const { value, done: doneReading } = await reader.read();
+                    done = doneReading;
+                    
+                    const chunkContent = decoder.decode(value, { stream: true });
+                    for (const line of chunkContent.split("\n")) {
+                        if (!line.trim()) continue;
+                        try {
+                            const json = JSON.parse(line);
+                            if (json.response) {
+                                messageContent += json.response;
+
+                                // Update habit state live
+                                setHabits(prev =>
+                                    prev.map(h => {
+                                        if (h.id === habit.id) {
+                                            return {
+                                                ...h,
+                                                grade: messageContent[0],
+                                                grade_explanation: messageContent,
+                                            };
+                                        }
+                                        return h;
+                                    })
+                                );
+                            }
+                        } catch (err) {
+                            console.error("JSON parse error:", err, line);
+                        }
+                    }
+                }
+                addHabitGrade(messageContent, habit.id);
             }
         }catch(error){
             console.log(error);
@@ -221,6 +264,17 @@ export default function HabitTrackerPage() {
                                         </span>
                                     )}
                                 </span>
+                                {habit.grade && (
+                                    <div
+                                        className={`ml-2 mr-2 w-8 h-8 flex items-center justify-center text-xs rounded font-bold border 
+                                            ${habit.grade === '+' ? 'bg-green-100 border-green-300 text-green-700' : ''}
+                                            ${habit.grade === '=' ? 'bg-gray-100 border-gray-300 text-gray-700' : ''}
+                                            ${habit.grade === '-' ? 'bg-red-100 border-red-300 text-red-700' : ''}
+                                        `}
+                                    >
+                                        {habit.grade}
+                                    </div>
+                                )}
                                 <button
                                     onClick={e => {
                                         e.stopPropagation();
